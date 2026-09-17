@@ -25,6 +25,9 @@ public class RabbitMQConfig {
         return new TopicExchange(TICKET_EXCHANGE, true, false);
     }
 
+    // TODO: buscar alternativas ao mensagem converter, pois o Jackson2JsonMessageConverter está depreciado e será removido em versões futuras do Spring AMQP.
+
+    @SuppressWarnings("removal")
     @Bean
     public MessageConverter jsonMessageConverter() {
         ObjectMapper objectMapper = new ObjectMapper();
