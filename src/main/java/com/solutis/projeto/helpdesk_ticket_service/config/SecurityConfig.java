@@ -1,0 +1,44 @@
+package com.solutis.projeto.helpdesk_ticket_service.config;
+
+import com.solutis.projeto.helpdesk_ticket_service.security.JwtAuthenticationFilter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
+        this.jwtFilter = jwtFilter;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                // Documentação Swagger/OpenAPI livre
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // Regras por perfil
+                .requestMatchers(HttpMethod.POST, "/tickets").hasAnyRole("CLIENT", "ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/tickets/*/assign").hasAnyRole("TECHNICIAN", "ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/tickets/*/status").hasAnyRole("TECHNICIAN", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/tickets/*").hasAnyRole("ADMIN", "TECHNICIAN")
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+}
