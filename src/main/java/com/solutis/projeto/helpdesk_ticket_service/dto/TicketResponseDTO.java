@@ -16,6 +16,7 @@ public record TicketResponseDTO(
     TicketCategory category,
     Long customerId,
     Long technicianId,
+    boolean ticketEnabled,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
@@ -29,6 +30,7 @@ public record TicketResponseDTO(
             ticket.getCategory(),
             ticket.getCustomerId(),
             ticket.getTechnicianId(),
+            ticket.isTicketEnabled(),
             ticket.getCreatedAt(),
             ticket.getUpdatedAt()
         );

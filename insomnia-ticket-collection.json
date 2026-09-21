@@ -1,0 +1,1567 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-09-18T19:55:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_helpdesk_ticket_service",
+      "parentId": null,
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "Helpdesk - Ticket & Messaging Service",
+      "description": "Suite de testes completa para o microserviço helpdesk-ticket-service e integração com RabbitMQ (Exchange ticket.events). Inclui ciclo de vida de tickets, exclusão lógica (ticketEnabled), listagem com filtros (ativados, desativados, todos), RBAC e validação de mensageria assíncrona.",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_base_ticket",
+      "parentId": "wrk_helpdesk_ticket_service",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "Ambiente Local",
+      "data": {
+        "ticketBaseUrl": "http://localhost:8082",
+        "userBaseUrl": "http://localhost:8081",
+        "rabbitmqApiUrl": "http://localhost:15672",
+        "rmqUser": "guest",
+        "rmqPassword": "guest",
+        "ticketId": "1",
+        "customerId": "2",
+        "technicianId": "3",
+        "adminToken": "",
+        "techToken": "",
+        "clientToken": ""
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "ticketBaseUrl",
+          "userBaseUrl",
+          "rabbitmqApiUrl",
+          "rmqUser",
+          "rmqPassword",
+          "ticketId",
+          "customerId",
+          "technicianId",
+          "adminToken",
+          "techToken",
+          "clientToken"
+        ]
+      },
+      "color": "#3f51b5",
+      "isPrivate": false,
+      "metaSortKey": 1,
+      "_type": "environment"
+    },
+    {
+      "_id": "fld_00_auth",
+      "parentId": "wrk_helpdesk_ticket_service",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "00 - Obtenção de Tokens JWT (User Service)",
+      "description": "Endpoints do helpdesk-user-service para geração de tokens com roles ADMIN, TECHNICIAN e CLIENT",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 50,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_auth_admin",
+      "parentId": "fld_00_auth",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.userBaseUrl }}/auth/login",
+      "name": "0.1 - Obter Token ADMIN [200 OK]",
+      "description": "Efetua login como Administrador. O Insomnia armazena o token automaticamente para as requisições de Admin.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"admin@helpdesk.com\",\n  \"password\": \"admin123\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 51,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_auth_tech",
+      "parentId": "fld_00_auth",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.userBaseUrl }}/auth/login",
+      "name": "0.2 - Obter Token TECHNICIAN [200 OK]",
+      "description": "Efetua login como Técnico. O token gerado será reutilizado automaticamente nas requisições de atribuição e status.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"tatiana.tecnica@helpdesk.com\",\n  \"password\": \"password123\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 52,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_auth_client",
+      "parentId": "fld_00_auth",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.userBaseUrl }}/auth/login",
+      "name": "0.3 - Obter Token CLIENT [200 OK]",
+      "description": "Efetua login como Cliente (autorizado a abrir chamados). Token reutilizado automaticamente.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"carlos.cliente@helpdesk.com\",\n  \"password\": \"password123\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 53,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_01_create",
+      "parentId": "wrk_helpdesk_ticket_service",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "01 - Criação de Chamados (POST /tickets)",
+      "description": "Abertura de chamados e publicação do evento ticket.created no RabbitMQ",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 100,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_ticket_create_client",
+      "parentId": "fld_01_create",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "1.1 - Criar Chamado como CLIENT [201 Created] (ticket.created)",
+      "description": "Cria um novo chamado pelo Cliente com status inicial 'OPEN' e ticketEnabled = true. Publica TicketCreatedEvent na exchange 'ticket.events' com routing key 'ticket.created'. O ID gerado é capturado para os testes subsequentes.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Falha de conectividade na rede local\",\n  \"description\": \"Computadores do setor financeiro sem acesso ao gateway ou impressoras de rede.\",\n  \"category\": \"NETWORK\",\n  \"priority\": \"HIGH\",\n  \"customerId\": 2\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_client', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 101,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_create_admin",
+      "parentId": "fld_01_create",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "1.2 - Criar Chamado como ADMIN [201 Created] (ticket.created)",
+      "description": "Cria chamado utilizando o perfil Administrador. Retorna 201 Created com ticketEnabled: true e publica evento ticket.created.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Manuten\\u00e7\\u00e3o preventiva em servidor de arquivos\",\n  \"description\": \"Substitui\\u00e7\\u00e3o programada de disco r\\u00edgido no storage principal.\",\n  \"category\": \"HARDWARE\",\n  \"priority\": \"MEDIUM\",\n  \"customerId\": 2\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 102,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_create_tech_forbidden",
+      "parentId": "fld_01_create",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "1.3 - Criar Chamado como TECHNICIAN [403 Forbidden]",
+      "description": "Valida regra de autorização: apenas CLIENT ou ADMIN podem criar chamados. TECHNICIAN recebe 403 Forbidden.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Tentativa de abertura por t\\u00e9cnico\",\n  \"description\": \"T\\u00e9cnicos n\\u00e3o devem abrir chamados diretamente, apenas atender.\",\n  \"category\": \"SOFTWARE\",\n  \"priority\": \"LOW\",\n  \"customerId\": 2\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 103,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_create_no_auth",
+      "parentId": "fld_01_create",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "1.4 - Criar Chamado sem Autenticação [403 Forbidden]",
+      "description": "Valida que requisições não autenticadas são bloqueadas pelo SecurityConfig.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Chamado An\\u00f4nimo\",\n  \"description\": \"Tentativa de abertura sem enviar token de autoriza\\u00e7\\u00e3o.\",\n  \"category\": \"SOFTWARE\",\n  \"priority\": \"LOW\",\n  \"customerId\": 2\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 104,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_create_invalid",
+      "parentId": "fld_01_create",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "1.5 - Criar Chamado com Dados Inválidos [400 Bad Request]",
+      "description": "Envia dados com violação de tamanho mínimo e campos obrigatórios nulos. Retorna 400 Bad Request com validação de campos.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Ops\",\n  \"description\": \"Curto\",\n  \"category\": null,\n  \"priority\": null,\n  \"customerId\": null\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_client', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 105,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_02_get",
+      "parentId": "wrk_helpdesk_ticket_service",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "02 - Consulta e Listagem (GET /tickets)",
+      "description": "Consultas com paginação e múltiplos critérios de filtro, incluindo 'ativados', 'desativados' e 'todos'",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 200,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_ticket_list_default_active",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "2.1 - Listar Chamados Paginados (Padrão: ativados) [200 OK]",
+      "description": "Por padrão (sem passar enabledFilter), o microserviço filtra apenas os chamados ATIVADOS (ticketEnabled = true).",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "0",
+          "disabled": false
+        },
+        {
+          "name": "size",
+          "value": "10",
+          "disabled": false
+        },
+        {
+          "name": "sort",
+          "value": "createdAt,desc",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 201,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_list_explicit_active",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "2.2 - Listar Chamados Explicitamente Ativados (?enabledFilter=ativados) [200 OK]",
+      "description": "Filtra explicitamente apenas os chamados ativados (ticketEnabled = true).",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "enabledFilter",
+          "value": "ativados",
+          "disabled": false
+        },
+        {
+          "name": "page",
+          "value": "0",
+          "disabled": false
+        },
+        {
+          "name": "size",
+          "value": "10",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 202,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_list_disabled",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "2.3 - Listar Chamados Desativados (?enabledFilter=desativados) [200 OK]",
+      "description": "Filtra chamados que sofreram exclusão lógica (ticketEnabled = false).",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "enabledFilter",
+          "value": "desativados",
+          "disabled": false
+        },
+        {
+          "name": "page",
+          "value": "0",
+          "disabled": false
+        },
+        {
+          "name": "size",
+          "value": "10",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 203,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_list_all_filter",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "2.4 - Listar Todos os Chamados (?enabledFilter=todos) [200 OK]",
+      "description": "Lista TODOS os chamados sem filtro de situação (tanto os ativados quanto os desativados logicamente).",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "enabledFilter",
+          "value": "todos",
+          "disabled": false
+        },
+        {
+          "name": "page",
+          "value": "0",
+          "disabled": false
+        },
+        {
+          "name": "size",
+          "value": "10",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 204,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_filter_status",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "2.5 - Filtrar por Status (OPEN) [200 OK]",
+      "description": "Utiliza a Specification para retornar apenas chamados com status OPEN.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "status",
+          "value": "OPEN",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 205,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_filter_priority",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "2.6 - Filtrar por Prioridade (HIGH) [200 OK]",
+      "description": "Filtra chamados de alta prioridade.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "priority",
+          "value": "HIGH",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 206,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_filter_category",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "2.7 - Filtrar por Categoria (NETWORK) [200 OK]",
+      "description": "Filtra chamados pela categoria informada (HARDWARE, SOFTWARE, NETWORK).",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "category",
+          "value": "NETWORK",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 207,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_filter_customer",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "2.8 - Filtrar por Cliente (customerId = 2) [200 OK]",
+      "description": "Filtra chamados pertencentes a um cliente específico.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "customerId",
+          "value": "2",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 208,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_filter_tech",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "2.9 - Filtrar por Técnico (technicianId = 3) [200 OK]",
+      "description": "Filtra a fila de chamados atribuídos ao técnico informado.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "technicianId",
+          "value": "3",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 209,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_get_by_id",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}",
+      "name": "2.10 - Buscar Chamado por ID [200 OK]",
+      "description": "Consulta detalhes completos do chamado criado no teste 1.1, exibindo o atributo ticketEnabled.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_client', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 210,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_get_not_found",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/99999",
+      "name": "2.11 - Buscar Chamado por ID Inexistente [404 Not Found]",
+      "description": "Busca um chamado com ID não existente. Retorna 404 Not Found.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 211,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_get_by_customer_endpoint",
+      "parentId": "fld_02_get",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/customer/2",
+      "name": "2.12 - Listar Chamados do Cliente via Path Variable [200 OK]",
+      "description": "Consulta direta na rota /tickets/customer/{customerId} retornando lista sem paginação.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_client', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 212,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_03_assign",
+      "parentId": "wrk_helpdesk_ticket_service",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "03 - Atribuição de Técnico (PATCH /assign)",
+      "description": "Atribuição de técnico com disparo de ticket.assigned e transição de status para ticket.status-changed",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 300,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_ticket_assign_tech",
+      "parentId": "fld_03_assign",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}/assign",
+      "name": "3.1 - Atribuir Técnico como TECHNICIAN [200 OK] (ticket.assigned + status-changed)",
+      "description": "Atribui o técnico de ID 3 ao chamado. Como o chamado estava 'OPEN', transita automaticamente para 'IN_PROGRESS'. Publica dois eventos no RabbitMQ: TicketAssignedEvent (ticket.assigned) e TicketStatusChangedEvent (ticket.status-changed)!",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"technicianId\": 3\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 301,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_assign_admin",
+      "parentId": "fld_03_assign",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}/assign",
+      "name": "3.2 - Atribuir Técnico como ADMIN [200 OK]",
+      "description": "Permite que o Administrador também realize a atribuição do técnico ao chamado.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"technicianId\": 3\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 302,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_assign_client_forbidden",
+      "parentId": "fld_03_assign",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}/assign",
+      "name": "3.3 - Atribuir Técnico como CLIENT [403 Forbidden]",
+      "description": "Valida que clientes não possuem permissão de atribuir técnicos aos chamados. Retorna 403 Forbidden.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"technicianId\": 3\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_client', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 303,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_assign_not_found",
+      "parentId": "fld_03_assign",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/99999/assign",
+      "name": "3.4 - Atribuir Técnico em Chamado Inexistente [404 Not Found]",
+      "description": "Tenta atribuir técnico a um chamado inexistente. Retorna 404 Not Found.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"technicianId\": 3\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 304,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_assign_null_id",
+      "parentId": "fld_03_assign",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}/assign",
+      "name": "3.5 - Atribuir Técnico com Payload Inválido [400 Bad Request]",
+      "description": "Envia technicianId nulo. O Bean Validation rejeita com 400 Bad Request.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"technicianId\": null\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 305,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_04_update",
+      "parentId": "wrk_helpdesk_ticket_service",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "04 - Atualização de Dados (PUT /tickets/{id})",
+      "description": "Edição cadastral de título, descrição, categoria e prioridade",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 400,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_ticket_update_success",
+      "parentId": "fld_04_update",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}",
+      "name": "4.1 - Atualizar Dados do Chamado [200 OK]",
+      "description": "Atualiza os campos cadastrais do chamado com sucesso. Retorna 200 OK e dados atualizados.",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Falha de conectividade - Switch 3F reiniciado\",\n  \"description\": \"Switch do terceiro andar foi reiniciado mas a instabilidade de rede persiste.\",\n  \"category\": \"NETWORK\",\n  \"priority\": \"CRITICAL\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_client', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 401,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_update_invalid",
+      "parentId": "fld_04_update",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}",
+      "name": "4.2 - Atualizar com Dados Inválidos [400 Bad Request]",
+      "description": "Valida as restrições do TicketUpdateDTO retornando 400 Bad Request.",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"\",\n  \"description\": \"curto\",\n  \"category\": null,\n  \"priority\": null\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_client', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 402,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_update_not_found",
+      "parentId": "fld_04_update",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/99999",
+      "name": "4.3 - Atualizar Chamado Inexistente [404 Not Found]",
+      "description": "Retorna 404 Not Found.",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Chamado Fantasma\",\n  \"description\": \"Tentativa de altera\\u00e7\\u00e3o em registro que n\\u00e3o existe.\",\n  \"category\": \"HARDWARE\",\n  \"priority\": \"LOW\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 403,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_05_status",
+      "parentId": "wrk_helpdesk_ticket_service",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "05 - Mudança de Status (PATCH /status)",
+      "description": "Transição de estados do ticket e publicação de ticket.status-changed",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 500,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_ticket_status_waiting",
+      "parentId": "fld_05_status",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}/status",
+      "name": "5.1 - Alterar Status para WAITING [200 OK] (ticket.status-changed)",
+      "description": "Transita o chamado de IN_PROGRESS para WAITING (aguardando retorno/peça). Publica TicketStatusChangedEvent no RabbitMQ com oldStatus: IN_PROGRESS e newStatus: WAITING.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"WAITING\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 501,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_status_resolved",
+      "parentId": "fld_05_status",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}/status",
+      "name": "5.2 - Alterar Status para RESOLVED [200 OK] (ticket.status-changed)",
+      "description": "Transita para RESOLVED após a solução técnica ser aplicada. Publica TicketStatusChangedEvent no RabbitMQ.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"RESOLVED\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 502,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_status_client_forbidden",
+      "parentId": "fld_05_status",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}/status",
+      "name": "5.3 - Alterar Status como CLIENT [403 Forbidden]",
+      "description": "Clientes não têm permissão para manipular o status via endpoint de status. Retorna 403 Forbidden.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"RESOLVED\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_client', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 503,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_status_null",
+      "parentId": "fld_05_status",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}/status",
+      "name": "5.4 - Alterar Status com Valor Nulo [400 Bad Request]",
+      "description": "Rejeita alteração com status nulo.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": null\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 504,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_06_close",
+      "parentId": "wrk_helpdesk_ticket_service",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "06 - Exclusão Lógica de Chamados (DELETE /tickets/{id})",
+      "description": "Nova operação de DELETE: desativação lógica (ticketEnabled = false) preservando o status atual",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 600,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_ticket_delete_soft",
+      "parentId": "fld_06_close",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}",
+      "name": "6.1 - Exclusão Lógica do Chamado [204 No Content] (ticketEnabled = false)",
+      "description": "Executa a nova operação de exclusão lógica do chamado. Define ticketEnabled = false SEM ALTERAR o status atual do chamado! Retorna 204 No Content.",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_tech', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 601,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_verify_soft_deleted",
+      "parentId": "fld_06_close",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/{% response 'body', 'req_ticket_create_client', 'b64::JC5pZA==::46b', 'never', 60 %}",
+      "name": "6.2 - Verificar Chamado Desativado com Status Mantido [200 OK]",
+      "description": "Consulta o chamado desativado. Confirma que ticketEnabled está 'false' e que o status original foi rigorosamente preservado.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 602,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_verify_not_in_active",
+      "parentId": "fld_06_close",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "6.3 - Confirmar que Desativado NÃO aparece na listagem padrão (ativados) [200 OK]",
+      "description": "Verifica que o chamado desativado logicamente não consta na listagem padrão de chamados ativados.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "enabledFilter",
+          "value": "ativados",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 603,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_verify_in_disabled",
+      "parentId": "fld_06_close",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "6.4 - Confirmar que Desativado APARECE em ?enabledFilter=desativados [200 OK]",
+      "description": "Verifica que o chamado desativado logicamente aparece na listagem com enabledFilter=desativados.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "enabledFilter",
+          "value": "desativados",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 604,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_verify_in_all",
+      "parentId": "fld_06_close",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets",
+      "name": "6.5 - Confirmar que Desativado APARECE em ?enabledFilter=todos [200 OK]",
+      "description": "Verifica que a consulta geral com enabledFilter=todos traz todos os chamados (ativados e desativados).",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "enabledFilter",
+          "value": "todos",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 605,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ticket_delete_not_found",
+      "parentId": "fld_06_close",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/tickets/99999",
+      "name": "6.6 - Excluir Chamado Inexistente [404 Not Found]",
+      "description": "Retorna 404 Not Found ao tentar excluir logicamente chamado inexistente.",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{% response 'body', 'req_auth_admin', 'b64::JC50b2tlbg==::46b', 'never', 60 %}"
+      },
+      "metaSortKey": 606,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_07_rabbitmq",
+      "parentId": "wrk_helpdesk_ticket_service",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "07 - Mensageria RabbitMQ (Management API)",
+      "description": "Monitoramento de exchanges, filas e eventos publicados via API HTTP do RabbitMQ",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 700,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_rmq_exchange_details",
+      "parentId": "fld_07_rabbitmq",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.rabbitmqApiUrl }}/api/exchanges/%2f/ticket.events",
+      "name": "7.1 - Consultar Exchange 'ticket.events' [200 OK]",
+      "description": "Consulta a exchange declarada pelo RabbitMQConfig (type: topic, durable: true) via RabbitMQ Management API.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "basic",
+        "username": "{{ _.rmqUser }}",
+        "password": "{{ _.rmqPassword }}"
+      },
+      "metaSortKey": 701,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_rmq_bindings",
+      "parentId": "fld_07_rabbitmq",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.rabbitmqApiUrl }}/api/exchanges/%2f/ticket.events/bindings/source",
+      "name": "7.2 - Consultar Bindings da Exchange 'ticket.events' [200 OK]",
+      "description": "Lista todas as conexões/bindings vinculadas à exchange (ex: filas consumidoras de ticket.created, ticket.assigned, ticket.status-changed).",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "basic",
+        "username": "{{ _.rmqUser }}",
+        "password": "{{ _.rmqPassword }}"
+      },
+      "metaSortKey": 702,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_rmq_queues",
+      "parentId": "fld_07_rabbitmq",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.rabbitmqApiUrl }}/api/queues",
+      "name": "7.3 - Listar Filas Ativas no RabbitMQ [200 OK]",
+      "description": "Verifica o total de mensagens prontas, em processamento e taxa de consumo nas filas do RabbitMQ.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "basic",
+        "username": "{{ _.rmqUser }}",
+        "password": "{{ _.rmqPassword }}"
+      },
+      "metaSortKey": 703,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_rmq_overview",
+      "parentId": "fld_07_rabbitmq",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.rabbitmqApiUrl }}/api/overview",
+      "name": "7.4 - Visão Geral do Cluster RabbitMQ [200 OK]",
+      "description": "Retorna status geral do RabbitMQ, versão, estatísticas de publish/deliver e conexões ativas.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "basic",
+        "username": "{{ _.rmqUser }}",
+        "password": "{{ _.rmqPassword }}"
+      },
+      "metaSortKey": 704,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_08_docs",
+      "parentId": "wrk_helpdesk_ticket_service",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "name": "08 - Documentação e OpenAPI",
+      "description": "Endpoints Swagger UI e especificação OpenAPI v3 do Ticket Service",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 800,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_doc_ticket_openapi",
+      "parentId": "fld_08_docs",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/v3/api-docs",
+      "name": "8.1 - OpenAPI JSON Spec [200 OK]",
+      "description": "Retorna a especificação OpenAPI 3.0 completa do microserviço de tickets em JSON.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 801,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_doc_ticket_swagger",
+      "parentId": "fld_08_docs",
+      "modified": 1789761266034,
+      "created": 1789761266034,
+      "url": "{{ _.ticketBaseUrl }}/swagger-ui/index.html",
+      "name": "8.2 - Swagger UI HTML [200 OK]",
+      "description": "Interface Swagger UI HTML interativa do SpringDoc para o ticket-service.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 802,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    }
+  ]
+}

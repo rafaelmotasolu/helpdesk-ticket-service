@@ -12,7 +12,8 @@ public class TicketSpecification {
                                                    TicketPriority priority,
                                                    TicketCategory category,
                                                    Long customerId,
-                                                   Long technicianId) {
+                                                   Long technicianId,
+                                                   String enabledFilter) {
         return (root, query, criteriaBuilder) -> {
             var predicate = criteriaBuilder.conjunction();
 
@@ -30,6 +31,22 @@ public class TicketSpecification {
             }
             if (technicianId != null) {
                 predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("technicianId"), technicianId));
+            }
+
+            // Filtro por ticketEnabled: "ativados" (padrão), "desativados" ou "todos"
+            if (enabledFilter != null && !enabledFilter.isBlank()) {
+                String normalized = enabledFilter.trim().toLowerCase();
+                if (normalized.equals("desativados") || normalized.equals("false") || normalized.equals("disabled")) {
+                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.isFalse(root.get("ticketEnabled")));
+                } else if (normalized.equals("todos") || normalized.equals("all")) {
+                    // Retorna todos (sem filtro de ticketEnabled)
+                } else {
+                    // Padrão "ativados"
+                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.isTrue(root.get("ticketEnabled")));
+                }
+            } else {
+                // Padrão quando não informado: "ativados"
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.isTrue(root.get("ticketEnabled")));
             }
 
             return predicate;

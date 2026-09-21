@@ -39,16 +39,17 @@ public class TicketController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar chamados com paginação e filtros opcionais por status, prioridade, categoria e IDs")
+    @Operation(summary = "Listar chamados com paginação e filtros opcionais por status, prioridade, categoria, IDs e situação (ativados, desativados ou todos)")
     public ResponseEntity<Page<TicketResponseDTO>> findAll(
             @RequestParam(required = false) TicketStatus status,
             @RequestParam(required = false) TicketPriority priority,
             @RequestParam(required = false) TicketCategory category,
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) Long technicianId,
+            @RequestParam(required = false, defaultValue = "ativados") String enabledFilter,
             @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<TicketResponseDTO> tickets = ticketService.findAll(status, priority, category, customerId, technicianId, pageable);
+        Page<TicketResponseDTO> tickets = ticketService.findAll(status, priority, category, customerId, technicianId, enabledFilter, pageable);
         return ResponseEntity.ok(tickets);
     }
 
@@ -92,9 +93,9 @@ public class TicketController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Encerrar um chamado (marcação de status CLOSED)")
-    public ResponseEntity<Void> closeTicket(@PathVariable Long id) {
-        ticketService.closeTicket(id);
+    @Operation(summary = "Exclusão lógica do chamado (desativação mantendo o status atual)")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        ticketService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -38,6 +38,9 @@ public class Ticket {
 
     private Long technicianId;
 
+    @Column(name = "ticket_enabled", nullable = false)
+    private boolean ticketEnabled = true;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -45,6 +48,7 @@ public class Ticket {
 
     public Ticket() {
         this.status = TicketStatus.OPEN;
+        this.ticketEnabled = true;
     }
 
     public Ticket(String title, String description, TicketCategory category,
@@ -55,6 +59,7 @@ public class Ticket {
         this.priority = priority;
         this.customerId = customerId;
         this.status = TicketStatus.OPEN;
+        this.ticketEnabled = true;
     }
 
     @PrePersist
@@ -149,5 +154,13 @@ public class Ticket {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public boolean isTicketEnabled() {
+        return ticketEnabled;
+    }
+
+    public void setTicketEnabled(boolean ticketEnabled) {
+        this.ticketEnabled = ticketEnabled;
     }
 }

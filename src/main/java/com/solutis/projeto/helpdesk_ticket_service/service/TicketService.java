@@ -74,8 +74,9 @@ public class TicketService {
                                           TicketCategory category,
                                           Long customerId,
                                           Long technicianId,
+                                          String enabledFilter,
                                           Pageable pageable) {
-        Specification<Ticket> spec = TicketSpecification.withFilters(status, priority, category, customerId, technicianId);
+        Specification<Ticket> spec = TicketSpecification.withFilters(status, priority, category, customerId, technicianId, enabledFilter);
         return ticketRepository.findAll(spec, pageable).map(TicketResponseDTO::fromEntity);
     }
 
@@ -169,6 +170,14 @@ public class TicketService {
         publishStatusChangedEvent(updatedTicket, oldStatus);
 
         return TicketResponseDTO.fromEntity(updatedTicket);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Ticket ticket = findEntityById(id);
+        ticket.setTicketEnabled(false);
+        ticketRepository.save(ticket);
+        log.info("Ticket {} desativado logicamente (ticketEnabled = false). Status mantido: {}", id, ticket.getStatus());
     }
 
     @Transactional
