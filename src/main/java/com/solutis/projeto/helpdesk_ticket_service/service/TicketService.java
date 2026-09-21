@@ -57,7 +57,8 @@ public class TicketService {
                 savedTicket.getPriority(),
                 savedTicket.getStatus(),
                 savedTicket.getCategory(),
-                savedTicket.getCustomerId()
+                savedTicket.getCustomerId(),
+                savedTicket.isTicketEnabled()
         );
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.TICKET_EXCHANGE,

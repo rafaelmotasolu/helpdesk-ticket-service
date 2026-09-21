@@ -14,10 +14,16 @@ public record TicketCreatedEvent(
     TicketStatus status,
     TicketCategory category,
     Long customerId,
+    boolean ticketEnabled,
     LocalDateTime occurredOn
 ) implements Serializable {
     public TicketCreatedEvent(Long ticketId, String title, TicketPriority priority, 
+                              TicketStatus status, TicketCategory category, Long customerId, boolean ticketEnabled) {
+        this(ticketId, title, priority, status, category, customerId, ticketEnabled, LocalDateTime.now());
+    }
+
+    public TicketCreatedEvent(Long ticketId, String title, TicketPriority priority, 
                               TicketStatus status, TicketCategory category, Long customerId) {
-        this(ticketId, title, priority, status, category, customerId, LocalDateTime.now());
+        this(ticketId, title, priority, status, category, customerId, true, LocalDateTime.now());
     }
 }
