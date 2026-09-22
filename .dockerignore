@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build outputs
+target/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Maven wrapper and local files
+mvnw
+mvnw.cmd
+.mvn/
+
+# Documentation
+HELP.md
+*.md
+Dockerfile*
+dockerfile*
+
