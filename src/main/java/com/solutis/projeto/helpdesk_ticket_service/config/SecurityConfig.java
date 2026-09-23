@@ -32,9 +32,10 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 // Regras por perfil
                 .requestMatchers(HttpMethod.POST, "/tickets").hasAnyRole("CLIENT", "ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/tickets/*/assign").hasAnyRole("TECHNICIAN", "ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/tickets/*/assign").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/tickets/*/status").hasAnyRole("TECHNICIAN", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/tickets/*").hasAnyRole("ADMIN", "TECHNICIAN")
+                .requestMatchers(HttpMethod.PUT, "/tickets/*").hasAnyRole("TECHNICIAN", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/tickets/*").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

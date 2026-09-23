@@ -42,6 +42,9 @@ class TicketServiceTest {
     @Mock
     private RabbitTemplate rabbitTemplate;
 
+    @Mock
+    private com.solutis.projeto.helpdesk_ticket_service.client.UserServiceClient userServiceClient;
+
     @InjectMocks
     private TicketService ticketService;
 
