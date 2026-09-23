@@ -28,6 +28,13 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.List;
 import java.util.Optional;
 
+import com.solutis.projeto.helpdesk_ticket_service.dto.TicketAssignDTO;
+import com.solutis.projeto.helpdesk_ticket_service.dto.UserSummaryDTO;
+import com.solutis.projeto.helpdesk_ticket_service.exception.BusinessException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -52,6 +59,11 @@ class TicketServiceTest {
 
     @BeforeEach
     void setUp() {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "1", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
         sampleTicket = new Ticket(
                 "Problema na rede",
                 "Sem acesso a rede e computadores",
@@ -137,6 +149,48 @@ class TicketServiceTest {
         assertEquals(1, result.getTotalElements());
         assertTrue(result.getContent().get(0).ticketEnabled());
         verify(ticketRepository).findAll(any(Specification.class), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("Não deve permitir atribuir um técnico ao seu próprio chamado (customerId == technicianId)")
+    void shouldNotAssignTechnicianToOwnTicket() {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "1", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        sampleTicket.setCustomerId(5L);
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(sampleTicket));
+        when(userServiceClient.getUserById(5L)).thenReturn(new UserSummaryDTO(5L, "Pedro Paulo", "pp@gmail.com", "TECHNICIAN", true));
+
+        BusinessException ex = assertThrows(BusinessException.class, () ->
+                ticketService.assignTechnician(1L, new TicketAssignDTO(5L))
+        );
+
+        assertEquals("Um técnico não pode ser atribuído ao seu próprio chamado.", ex.getMessage());
+        verify(ticketRepository, never()).save(any(Ticket.class));
+    }
+
+    @Test
+    @DisplayName("Deve atribuir técnico com sucesso quando não for o criador do chamado")
+    void shouldAssignTechnicianToDifferentTicket() {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "1", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        sampleTicket.setCustomerId(9L);
+        sampleTicket.setStatus(TicketStatus.OPEN);
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(sampleTicket));
+        when(userServiceClient.getUserById(5L)).thenReturn(new UserSummaryDTO(5L, "Carlos Silva", "carlos@helpdesk.com", "TECHNICIAN", true));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TicketResponseDTO response = ticketService.assignTechnician(1L, new TicketAssignDTO(5L));
+
+        assertNotNull(response);
+        assertEquals(5L, response.technicianId());
+        assertEquals(TicketStatus.IN_PROGRESS, response.status());
+        verify(ticketRepository).save(any(Ticket.class));
     }
 }
 

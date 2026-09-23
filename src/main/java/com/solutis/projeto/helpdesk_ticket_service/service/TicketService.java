@@ -47,8 +47,8 @@ public class TicketService {
     @Transactional
     public TicketResponseDTO create(TicketCreateDTO dto) {
         Long customerId = dto.customerId();
-        // Se o usuário autenticado for CLIENTE, o chamado é obrigatoriamente associado a ele
-        if (SecurityUtils.isClient()) {
+        // Se o usuário autenticado for CLIENTE ou TÉCNICO, o chamado é obrigatoriamente associado a ele como solicitante
+        if (SecurityUtils.isClient() || SecurityUtils.isTechnician()) {
             customerId = SecurityUtils.getCurrentUserId();
         }
 
@@ -90,11 +90,7 @@ public class TicketService {
                                           Long technicianId,
                                           String enabledFilter,
                                           Pageable pageable) {
-        // Se o usuário autenticado for TÉCNICO, restringe estritamente aos chamados atribuídos a ele
-        if (SecurityUtils.isTechnician()) {
-            Long currentUserId = SecurityUtils.getCurrentUserId();
-            technicianId = currentUserId;
-        } else if (SecurityUtils.isClient()) {
+        if (SecurityUtils.isClient()) {
             // Se o usuário autenticado for CLIENTE, restringe estritamente aos seus próprios chamados
             Long currentUserId = SecurityUtils.getCurrentUserId();
             customerId = currentUserId;
@@ -106,6 +102,17 @@ public class TicketService {
         }
 
         Specification<Ticket> spec = TicketSpecification.withFilters(status, priority, category, customerId, technicianId, enabledFilter);
+
+        // Se o usuário autenticado for TÉCNICO, pode visualizar os chamados atribuídos a ele OU abertos por ele
+        if (SecurityUtils.isTechnician()) {
+            Long currentUserId = SecurityUtils.getCurrentUserId();
+            Specification<Ticket> techVisibility = (root, query, cb) -> cb.or(
+                    cb.equal(root.get("technicianId"), currentUserId),
+                    cb.equal(root.get("customerId"), currentUserId)
+            );
+            spec = spec.and(techVisibility);
+        }
+
         return ticketRepository.findAll(spec, pageable).map(TicketResponseDTO::fromEntity);
     }
 
@@ -113,11 +120,13 @@ public class TicketService {
     public TicketResponseDTO findById(Long id) {
         Ticket ticket = findEntityById(id);
 
-        // Se o usuário autenticado for TÉCNICO, só pode visualizar se o chamado estiver atribuído a ele
+        // Se o usuário autenticado for TÉCNICO, pode visualizar se o chamado estiver atribuído a ele ou tiver sido aberto por ele
         if (SecurityUtils.isTechnician()) {
             Long currentUserId = SecurityUtils.getCurrentUserId();
-            if (ticket.getTechnicianId() == null || !ticket.getTechnicianId().equals(currentUserId)) {
-                throw new AccessDeniedException("Acesso negado: Técnicos só podem visualizar seus próprios chamados atribuídos.");
+            boolean isAssigned = ticket.getTechnicianId() != null && ticket.getTechnicianId().equals(currentUserId);
+            boolean isCreator = ticket.getCustomerId() != null && ticket.getCustomerId().equals(currentUserId);
+            if (!isAssigned && !isCreator) {
+                throw new AccessDeniedException("Acesso negado: Técnicos só podem visualizar chamados atribuídos a eles ou abertos por eles.");
             }
         } else if (SecurityUtils.isClient()) {
             // Se o usuário autenticado for CLIENTE, só pode visualizar se o chamado pertencer a ele
@@ -192,6 +201,11 @@ public class TicketService {
 
         if (!"TECHNICIAN".equalsIgnoreCase(targetUser.role())) {
             throw new BusinessException("Apenas usuários com perfil de TÉCNICO podem ser atribuídos a chamados.");
+        }
+
+        // Regra de negócio: um técnico não pode ser atribuído ao seu próprio chamado
+        if (ticket.getCustomerId() != null && ticket.getCustomerId().equals(dto.technicianId())) {
+            throw new BusinessException("Um técnico não pode ser atribuído ao seu próprio chamado.");
         }
 
         ticket.setTechnicianId(dto.technicianId());
