@@ -23,13 +23,16 @@ public final class SecurityUtils {
 
     public static boolean hasRole(String role) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getAuthorities() == null) {
+        if (auth == null || auth.getAuthorities() == null || role == null) {
             return false;
         }
         String targetAuthority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-        return auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(targetAuthority::equalsIgnoreCase);
+        for (GrantedAuthority authority : auth.getAuthorities()) {
+            if (authority != null && targetAuthority.equalsIgnoreCase(authority.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean isAdmin() {

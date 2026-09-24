@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -142,14 +143,14 @@ class TicketServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Ticket> page = new PageImpl<>(List.of(sampleTicket));
 
-        when(ticketRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+        when(ticketRepository.findAll(ArgumentMatchers.<Specification<Ticket>>any(), eq(pageable))).thenReturn(page);
 
         Page<TicketResponseDTO> result = ticketService.findAll(null, null, null, null, null, "ativados", pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         assertTrue(result.getContent().get(0).ticketEnabled());
-        verify(ticketRepository).findAll(any(Specification.class), eq(pageable));
+        verify(ticketRepository).findAll(ArgumentMatchers.<Specification<Ticket>>any(), eq(pageable));
     }
 
     @Test
