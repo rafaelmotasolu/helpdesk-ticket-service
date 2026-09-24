@@ -103,12 +103,13 @@ public class TicketService {
 
         Specification<Ticket> spec = TicketSpecification.withFilters(status, priority, category, customerId, technicianId, enabledFilter);
 
-        // Se o usuário autenticado for TÉCNICO, pode visualizar os chamados atribuídos a ele OU abertos por ele
+        // Se o usuário autenticado for TÉCNICO, pode visualizar os chamados atribuídos a ele, abertos por ele ou sem técnico atribuído
         if (SecurityUtils.isTechnician()) {
             Long currentUserId = SecurityUtils.getCurrentUserId();
             Specification<Ticket> techVisibility = (root, query, cb) -> cb.or(
                     cb.equal(root.get("technicianId"), currentUserId),
-                    cb.equal(root.get("customerId"), currentUserId)
+                    cb.equal(root.get("customerId"), currentUserId),
+                    cb.isNull(root.get("technicianId"))
             );
             spec = spec.and(techVisibility);
         }
@@ -120,13 +121,14 @@ public class TicketService {
     public TicketResponseDTO findById(Long id) {
         Ticket ticket = findEntityById(id);
 
-        // Se o usuário autenticado for TÉCNICO, pode visualizar se o chamado estiver atribuído a ele ou tiver sido aberto por ele
+        // Se o usuário autenticado for TÉCNICO, pode visualizar se o chamado estiver atribuído a ele, se tiver sido aberto por ele ou se estiver sem técnico atribuído
         if (SecurityUtils.isTechnician()) {
             Long currentUserId = SecurityUtils.getCurrentUserId();
             boolean isAssigned = ticket.getTechnicianId() != null && ticket.getTechnicianId().equals(currentUserId);
             boolean isCreator = ticket.getCustomerId() != null && ticket.getCustomerId().equals(currentUserId);
-            if (!isAssigned && !isCreator) {
-                throw new AccessDeniedException("Acesso negado: Técnicos só podem visualizar chamados atribuídos a eles ou abertos por eles.");
+            boolean isUnassigned = ticket.getTechnicianId() == null;
+            if (!isAssigned && !isCreator && !isUnassigned) {
+                throw new AccessDeniedException("Acesso negado: Técnicos só podem visualizar chamados atribuídos a eles, abertos por eles ou disponíveis para atendimento.");
             }
         } else if (SecurityUtils.isClient()) {
             // Se o usuário autenticado for CLIENTE, só pode visualizar se o chamado pertencer a ele
@@ -178,12 +180,21 @@ public class TicketService {
 
     @Transactional
     public TicketResponseDTO assignTechnician(Long id, TicketAssignDTO dto) {
-        // Apenas ADMIN pode atribuir técnicos
-        if (!SecurityUtils.isAdmin()) {
-            throw new AccessDeniedException("Apenas o administrador pode atribuir técnicos a chamados.");
-        }
-
         Ticket ticket = findEntityById(id);
+
+        if (SecurityUtils.isTechnician()) {
+            Long currentUserId = SecurityUtils.getCurrentUserId();
+            // Técnicos só podem assumir chamados para si mesmos
+            if (!currentUserId.equals(dto.technicianId())) {
+                throw new AccessDeniedException("Técnicos só podem assumir chamados para si mesmos.");
+            }
+            // O chamado precisa estar sem técnico atribuído
+            if (ticket.getTechnicianId() != null) {
+                throw new BusinessException("Este chamado já possui um técnico atribuído.");
+            }
+        } else if (!SecurityUtils.isAdmin()) {
+            throw new AccessDeniedException("Você não possui permissão para atribuir técnicos.");
+        }
 
         if (ticket.getStatus() == TicketStatus.CLOSED) {
             throw new BusinessException("Não é permitido atribuir técnico a um chamado já encerrado.");

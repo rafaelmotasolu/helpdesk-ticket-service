@@ -31,6 +31,7 @@ import java.util.Optional;
 import com.solutis.projeto.helpdesk_ticket_service.dto.TicketAssignDTO;
 import com.solutis.projeto.helpdesk_ticket_service.dto.UserSummaryDTO;
 import com.solutis.projeto.helpdesk_ticket_service.exception.BusinessException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -191,6 +192,90 @@ class TicketServiceTest {
         assertEquals(5L, response.technicianId());
         assertEquals(TicketStatus.IN_PROGRESS, response.status());
         verify(ticketRepository).save(any(Ticket.class));
+    }
+
+    @Test
+    @DisplayName("Técnico deve conseguir assumir chamado disponível (sem técnico e que não seja dele)")
+    void shouldAllowTechnicianToAssumeUnassignedTicket() {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "5", null, List.of(new SimpleGrantedAuthority("ROLE_TECHNICIAN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        sampleTicket.setCustomerId(9L);
+        sampleTicket.setTechnicianId(null);
+        sampleTicket.setStatus(TicketStatus.OPEN);
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(sampleTicket));
+        when(userServiceClient.getUserById(5L)).thenReturn(new UserSummaryDTO(5L, "Carlos Silva", "carlos@helpdesk.com", "TECHNICIAN", true));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TicketResponseDTO response = ticketService.assignTechnician(1L, new TicketAssignDTO(5L));
+
+        assertNotNull(response);
+        assertEquals(5L, response.technicianId());
+        assertEquals(TicketStatus.IN_PROGRESS, response.status());
+        verify(ticketRepository).save(any(Ticket.class));
+    }
+
+    @Test
+    @DisplayName("Técnico não deve conseguir assumir chamado já atribuído a outro técnico")
+    void shouldNotAllowTechnicianToAssumeAlreadyAssignedTicket() {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "5", null, List.of(new SimpleGrantedAuthority("ROLE_TECHNICIAN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        sampleTicket.setCustomerId(9L);
+        sampleTicket.setTechnicianId(2L);
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(sampleTicket));
+
+        BusinessException ex = assertThrows(BusinessException.class, () ->
+                ticketService.assignTechnician(1L, new TicketAssignDTO(5L))
+        );
+
+        assertEquals("Este chamado já possui um técnico atribuído.", ex.getMessage());
+        verify(ticketRepository, never()).save(any(Ticket.class));
+    }
+
+    @Test
+    @DisplayName("Técnico não deve conseguir assumir seu próprio chamado")
+    void shouldNotAllowTechnicianToAssumeOwnTicket() {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "5", null, List.of(new SimpleGrantedAuthority("ROLE_TECHNICIAN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        sampleTicket.setCustomerId(5L);
+        sampleTicket.setTechnicianId(null);
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(sampleTicket));
+        when(userServiceClient.getUserById(5L)).thenReturn(new UserSummaryDTO(5L, "Pedro Paulo", "pp@gmail.com", "TECHNICIAN", true));
+
+        BusinessException ex = assertThrows(BusinessException.class, () ->
+                ticketService.assignTechnician(1L, new TicketAssignDTO(5L))
+        );
+
+        assertEquals("Um técnico não pode ser atribuído ao seu próprio chamado.", ex.getMessage());
+        verify(ticketRepository, never()).save(any(Ticket.class));
+    }
+
+    @Test
+    @DisplayName("Técnico não deve conseguir atribuir um chamado para outro técnico")
+    void shouldNotAllowTechnicianToAssignSomeoneElse() {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "5", null, List.of(new SimpleGrantedAuthority("ROLE_TECHNICIAN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        sampleTicket.setCustomerId(9L);
+        sampleTicket.setTechnicianId(null);
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(sampleTicket));
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () ->
+                ticketService.assignTechnician(1L, new TicketAssignDTO(2L))
+        );
+
+        assertEquals("Técnicos só podem assumir chamados para si mesmos.", ex.getMessage());
+        verify(ticketRepository, never()).save(any(Ticket.class));
     }
 }
 

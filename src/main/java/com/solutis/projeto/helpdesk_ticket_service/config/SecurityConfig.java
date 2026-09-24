@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 // Regras por perfil
                 .requestMatchers(HttpMethod.POST, "/tickets").hasAnyRole("CLIENT", "ADMIN", "TECHNICIAN")
-                .requestMatchers(HttpMethod.PATCH, "/tickets/*/assign").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/tickets/*/assign").hasAnyRole("ADMIN", "TECHNICIAN")
                 .requestMatchers(HttpMethod.PATCH, "/tickets/*/status").hasAnyRole("TECHNICIAN", "ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/tickets/*").hasAnyRole("TECHNICIAN", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/tickets/*").hasRole("ADMIN")
